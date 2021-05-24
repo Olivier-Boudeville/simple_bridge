@@ -3,5 +3,5 @@
     {vsn,          "2.1.0"},
     {applications, [kernel, stdlib]},
     {registered,   []},
-	{mod, 		   {simple_bridge_app, []}}
+	{mod,		   {simple_bridge_app, []}}
 ]}.

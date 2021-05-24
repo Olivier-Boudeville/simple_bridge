@@ -9,7 +9,7 @@
 -export ([
     init/1,
     protocol/1,
-    request_method/1, 
+    request_method/1,
     path/1,
     uri/1,
     peer_ip/1,
@@ -38,7 +38,7 @@
 %%
 %% Either put the value into a mochiweb.config and load that, or you can
 %% just specify it in code or the console with:
-%% 
+%%
 %%      application:set_env(mochiweb, max_request_size, Size).
 %%
 %% where size is an integer containing the number of bytes
@@ -46,16 +46,16 @@
 
 %% REQUEST FUNCTIONS
 
-init(Req) -> 
+init(Req) ->
     Req.
 
 protocol(Req) ->
     mochiweb_request:get(scheme, Req).
 
-request_method(Req) -> 
+request_method(Req) ->
     mochiweb_request:get(method, Req).
 
-path(Req) -> 
+path(Req) ->
     RawPath = mochiweb_request:get(raw_path, Req),
     {Path, _, _} = mochiweb_util:urlsplit_path(RawPath),
     Path.
@@ -63,15 +63,15 @@ path(Req) ->
 uri(Req) ->
     mochiweb_request:get(raw_path, Req).
 
-peer_ip(Req) -> 
+peer_ip(Req) ->
     case mochiweb_request:get(socket, Req) of
-        false -> {127, 0, 0, 1};
-        Socket ->
-            {ok, {IP, _Port}} = mochiweb_socket:peername(Socket),
-            IP
+	false -> {127, 0, 0, 1};
+	Socket ->
+	    {ok, {IP, _Port}} = mochiweb_socket:peername(Socket),
+	    IP
     end.
 
-peer_port(Req) -> 
+peer_port(Req) ->
     Socket = mochiweb_request:get(socket, Req),
     {ok, {_IP, Port}} = mochiweb_socket:peername(Socket),
     Port.
@@ -93,34 +93,34 @@ post_params(Req) ->
 
 request_body(Req) ->
     MaxBody = case application:get_env(mochiweb,max_request_size) of
-        undefined -> 
-            ?MAX_RECV_BODY;
-        {ok, Max} when is_integer(Max) -> 
-            Max;
-        Other -> 
-            error_logger:warning_msg("Mochiweb Simple Bridge Configuration Error!  Unknown value for 'mochiweb' application variable 'max_request_size': ~p. Expected: integer() or undefined. Using Default of ~p~n",[Other,?MAX_RECV_BODY]),
-            ?MAX_RECV_BODY
+	undefined ->
+	    ?MAX_RECV_BODY;
+	{ok, Max} when is_integer(Max) ->
+	    Max;
+	Other ->
+	    error_logger:warning_msg("Mochiweb Simple Bridge Configuration Error!  Unknown value for 'mochiweb' application variable 'max_request_size': ~p. Expected: integer() or undefined. Using Default of ~p~n",[Other,?MAX_RECV_BODY]),
+	    ?MAX_RECV_BODY
     end,
     mochiweb_request:recv_body(MaxBody, Req).
 
-socket(Req) ->  
+socket(Req) ->
     mochiweb_request:get(socket, Req).
 
-recv_from_socket(Length, Timeout, Req) -> 
+recv_from_socket(Length, Timeout, Req) ->
     Socket = socket(Req),
     case gen_tcp:recv(Socket, Length, Timeout) of
-        {ok, Data} -> 
-            put(mochiweb_request_recv, true),
-            Data;
-        _Other -> 
-            exit(normal)
+	{ok, Data} ->
+	    put(mochiweb_request_recv, true),
+	    Data;
+	_Other ->
+	    exit(normal)
     end.
 
 protocol_version(Req) ->
     case mochiweb_request:get(version, Req) of
-        'HTTP/1.1' -> {1, 1};
-        'HTTP/1.0' -> {1, 0};
-        {H, L} -> {H, L}
+	'HTTP/1.1' -> {1, 1};
+	'HTTP/1.0' -> {1, 0};
+	{H, L} -> {H, L}
     end.
 
 
@@ -137,16 +137,16 @@ build_response(Req, Res) ->
 			  ]),
 
     case Res#response.data of
-        {data, Body} ->
-            % Send the mochiweb response...
-            Headers2 = simple_bridge_util:ensure_header(Headers,{"Content-Type","text/html"}),
-            Response = {Code, Headers2, Body},
-            mochiweb_request:respond(Response, Req);
-        {file, Path} ->
-            %% Create the response telling Mochiweb to serve the file...
-            Headers2 = simple_bridge_util:ensure_expires_header(Headers),
-            DocRoot = simple_bridge_util:get_docroot(mochiweb),
-            mochiweb_request:serve_file(tl(Path), DocRoot, Headers2, Req)
+	{data, Body} ->
+	    % Send the mochiweb response...
+	    Headers2 = simple_bridge_util:ensure_header(Headers,{"Content-Type","text/html"}),
+	    Response = {Code, Headers2, Body},
+	    mochiweb_request:respond(Response, Req);
+	{file, Path} ->
+	    %% Create the response telling Mochiweb to serve the file...
+	    Headers2 = simple_bridge_util:ensure_expires_header(Headers),
+	    DocRoot = simple_bridge_util:get_docroot(mochiweb),
+	    mochiweb_request:serve_file(tl(Path), DocRoot, Headers2, Req)
     end,
     ok.
 
@@ -154,10 +154,10 @@ create_cookie_header(Cookie) ->
     Name = Cookie#cookie.name,
     Value = Cookie#cookie.value,
     Options = [
-               {domain, Cookie#cookie.domain},
-               {path, Cookie#cookie.path},
-               {max_age, Cookie#cookie.max_age},
-               {secure, Cookie#cookie.secure},
-               {http_only, Cookie#cookie.http_only}
-              ],
+	       {domain, Cookie#cookie.domain},
+	       {path, Cookie#cookie.path},
+	       {max_age, Cookie#cookie.max_age},
+	       {secure, Cookie#cookie.secure},
+	       {http_only, Cookie#cookie.http_only}
+	      ],
     mochiweb_cookies:cookie(Name, Value, Options).

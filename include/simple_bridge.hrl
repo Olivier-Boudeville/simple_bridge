@@ -28,8 +28,8 @@
 -record(sb_uploaded_file, { original_name, temp_file, size, field_name, data }).
 -record(request_cache, {request, docroot="", body=""}).
 
--define(DEFAULT_IP, 	{0,0,0,0}).
--define(DEFAULT_PORT, 	8000).
+-define(DEFAULT_IP,	{0,0,0,0}).
+-define(DEFAULT_PORT,	8000).
 -define(DEFAULT_DOCROOT,"./priv/static").
 -define(DEFAULT_STATIC_PATHS, []).
 

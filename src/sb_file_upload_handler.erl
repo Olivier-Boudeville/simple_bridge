@@ -114,11 +114,11 @@ get_data(FileUploadHandlerState={_Id, _State, Funs}) ->
 %%--------------------------------------------------------------------
 temporary_file_handler() ->
     {temporary_file, [
-        {new_file,      fun handle_new_file/2}
-        ,{receive_data,  fun handle_receive_data/2}
-        ,{complete_file, fun handle_complete_file/1}
-        ,{get_tempfile,  fun handle_get_tempfile/1}
-        ,{get_data,      fun handle_get_data/1}
+	{new_file,      fun handle_new_file/2}
+	,{receive_data,  fun handle_receive_data/2}
+	,{complete_file, fun handle_complete_file/1}
+	,{get_tempfile,  fun handle_get_tempfile/1}
+	,{get_data,      fun handle_get_data/1}
     ]}.
 
 
@@ -135,11 +135,11 @@ temporary_file_handler() ->
 %%--------------------------------------------------------------------
 memory_file_handler() ->
     {memory, [
-        {new_file,      fun handle_new_file/2}
-        ,{receive_data,  fun handle_receive_data/2}
-        ,{complete_file, fun handle_complete_file/1}
-        ,{get_tempfile,  fun handle_get_tempfile/1}
-        ,{get_data,      fun handle_get_data/1}
+	{new_file,      fun handle_new_file/2}
+	,{receive_data,  fun handle_receive_data/2}
+	,{complete_file, fun handle_complete_file/1}
+	,{get_tempfile,  fun handle_get_tempfile/1}
+	,{get_data,      fun handle_get_data/1}
     ]}.
 
 
@@ -155,24 +155,24 @@ handle_new_file({memory, Funs}, FileName) ->
 handle_receive_data({memory, {FileName, DataState, CurrentSize}, Funs}, Data) ->
     NewSize = CurrentSize + size(Data),
     case NewSize > get_max_memory_size() of
-        true ->
-            %% Transform current MemoryUploadHandler to FileUploadHandler
-            %% when Data is too big
-            NewFileHandler = new_file(temporary_file_handler(), FileName),
-            receive_data(NewFileHandler, <<DataState/binary, Data/binary>>);
-        false ->
-            {memory, {FileName, <<DataState/binary, Data/binary>>, NewSize}, Funs}
+	true ->
+	    %% Transform current MemoryUploadHandler to FileUploadHandler
+	    %% when Data is too big
+	    NewFileHandler = new_file(temporary_file_handler(), FileName),
+	    receive_data(NewFileHandler, <<DataState/binary, Data/binary>>);
+	false ->
+	    {memory, {FileName, <<DataState/binary, Data/binary>>, NewSize}, Funs}
     end;
 handle_receive_data({temporary_file, {FileName, TempFile, CurrentSize}, Funs}, Data) ->
     NewSize = CurrentSize + size(Data),
 
     % Throw exception if the uploaded file is getting too big.
     case NewSize > get_max_file_size() of
-        true ->
-            file:delete(TempFile),
-            throw({file_too_big, FileName});
-        false ->
-            continue
+	true ->
+	    file:delete(TempFile),
+	    throw({file_too_big, FileName});
+	false ->
+	    continue
     end,
 
     ok = filelib:ensure_dir(TempFile),

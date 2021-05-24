@@ -1,16 +1,16 @@
 %% vim: ts=4 sw=4 et
 -module(simple_bridge_websocket).
 -export([
-        attempt_hijacking/2,
+	attempt_hijacking/2,
 
-        %% These three are used by cowboy or yaws and should basically never be
-        %% called except from within the simple_bridge app
-        call_init/2,
-        keepalive_timeout/2,
-        schedule_keepalive_msg/1,
+	%% These three are used by cowboy or yaws and should basically never be
+	%% called except from within the simple_bridge app
+	call_init/2,
+	keepalive_timeout/2,
+	schedule_keepalive_msg/1,
 
-        %% Exported for code-reloading
-        websocket_loop/8
+	%% Exported for code-reloading
+	websocket_loop/8
     ]).
 
 %-compile(export_all).
@@ -36,11 +36,11 @@
 
 -define(IS_INVALID_OPCODE(Op),
     not(Op=:=?WS_CONTINUATION orelse
-        Op=:=?WS_TEXT orelse
-        Op=:=?WS_BINARY orelse
-        Op=:=?WS_CLOSE orelse
-        Op=:=?WS_PING orelse
-        Op=:=?WS_PONG)).
+	Op=:=?WS_TEXT orelse
+	Op=:=?WS_BINARY orelse
+	Op=:=?WS_CLOSE orelse
+	Op=:=?WS_PING orelse
+	Op=:=?WS_PONG)).
 
 
 
@@ -54,42 +54,42 @@ attempt_hijacking(Bridge, Handler) ->
     WSVersionHead = sbw:header("Sec-WebSocket-Version", Bridge),
     ConnectionHeaderHasUpgrade = does_connection_header_have_upgrade(Bridge),
     if
-        ProtocolVersion     >= {1,1},
-        UpgradeHeader       =:= "websocket",
-        ConnectionHeaderHasUpgrade,
-        WSVersionHead       =/= undefined ->
-            WSVersions = re:split(WSVersionHead, "[, ]+]", [{return, list}]),
-            HijackedBridge = case lists:member(?WS_VERSION, WSVersions) of
-                true ->
-                    hijack(Bridge, Handler);
-                false ->
-                    hijack_request_fail(Bridge)
-            end,
-            {hijacked, HijackedBridge};
-        ?else ->
-            spared      %% Spared from being hijacked
+	ProtocolVersion     >= {1,1},
+	UpgradeHeader       =:= "websocket",
+	ConnectionHeaderHasUpgrade,
+	WSVersionHead       =/= undefined ->
+	    WSVersions = re:split(WSVersionHead, "[, ]+]", [{return, list}]),
+	    HijackedBridge = case lists:member(?WS_VERSION, WSVersions) of
+		true ->
+		    hijack(Bridge, Handler);
+		false ->
+		    hijack_request_fail(Bridge)
+	    end,
+	    {hijacked, HijackedBridge};
+	?else ->
+	    spared      %% Spared from being hijacked
     end.
 
 does_connection_header_have_upgrade(Bridge) ->
     case sbw:header_lower(connection, Bridge) of
-        undefined ->
-            false;
-        ConnectionHeader ->
-            case re:run(ConnectionHeader, "upgrade") of
-                nomatch -> false;
-                {match, _} -> true
-            end
+	undefined ->
+	    false;
+	ConnectionHeader ->
+	    case re:run(ConnectionHeader, "upgrade") of
+		nomatch -> false;
+		{match, _} -> true
+	    end
     end.
 
 
 call_init(Handler, Bridge) ->
     case erlang:function_exported(Handler, ws_init, 1) of
-        true ->
-            case Handler:ws_init(Bridge) of
-                ok -> undefined;
-                {ok, State} -> State
-            end;
-        false -> undefined
+	true ->
+	    case Handler:ws_init(Bridge) of
+		ok -> undefined;
+		{ok, State} -> State
+	    end;
+	false -> undefined
     end.
 
 keepalive_timeout(infinity, _) -> infinity;
@@ -138,77 +138,77 @@ hijack(Bridge, Handler) ->
 
 send_handshake_response(Socket, ResponseKey) ->
     Handshake = [
-                 <<"HTTP/1.1 101 Switching Protocols\r\n">>,
-                 <<"Upgrade: websocket\r\n">>,
-                 <<"Connection: Upgrade\r\n">>,
-                 <<"Sec-WebSocket-Accept: ">>,ResponseKey,<<"\r\n">>,
-                 <<"\r\n">>
-                ],
+		 <<"HTTP/1.1 101 Switching Protocols\r\n">>,
+		 <<"Upgrade: websocket\r\n">>,
+		 <<"Connection: Upgrade\r\n">>,
+		 <<"Sec-WebSocket-Accept: ">>,ResponseKey,<<"\r\n">>,
+		 <<"\r\n">>
+		],
     gen_tcp:send(Socket, Handshake).
 
 websocket_loop_init(Socket, Bridge, Handler, KAInterval, KATimeout, PongTimer, State, PartialData) ->
     try websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, PongTimer, State, PartialData)
     catch
-        exit:{websocket, ReasonCode, _Reason} ->
-            send(Socket, {close, ReasonCode}),
-            gen_tcp:close(Socket),
-            %% cascade the error up
-            exit(normal)
+	exit:{websocket, ReasonCode, _Reason} ->
+	    send(Socket, {close, ReasonCode}),
+	    gen_tcp:close(Socket),
+	    %% cascade the error up
+	    exit(normal)
     end.
 
 websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, PongTimer, State, PartialData) ->
-    receive 
-        {tcp, Socket, Data} ->
-            cancel_pong_timer(PongTimer),
-            AttemptPacket = <<(PartialData#partial_data.data)/binary, Data/binary>>,
-            Frames = parse_frame(AttemptPacket),
-            
-            PendingFrames = PartialData#partial_data.message_frames,
-            case process_frames(Frames, Socket, Bridge, Handler, State, PendingFrames) of
-                {PendingFrames2, RemainderData, NewState} ->
-                    inet:setopts(Socket, [{active, once}]),
-                    ?MODULE:websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, undefined, NewState, #partial_data{data=RemainderData, message_frames=PendingFrames2});
-                closed -> closed
-            end;
-        {tcp_closed, _Socket} ->
-            closed;
-        simple_bridge_pong_timeout ->
-            %% If this message is received, it means no TCP message was
-            %% received in the expected timeframe, so we kill the
-            %% connection. Any TCP message received would have cancelled
-            %% the timer.
-            send(Socket, {close, 1006}),
-            gen_tcp:close(Socket),
-            closed;
-        simple_bridge_send_ping ->
-            Reply = {ping, <<"simple bridge websocket">>},
-            schedule_keepalive_msg(KAInterval),
-            send(Socket, Reply),
-            {ok, NewPongTimer} = timer:send_after(KATimeout, simple_bridge_pong_timeout),
-            ?MODULE:websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, NewPongTimer, State, PartialData);
-        Msg ->
-            {Reply, NewState} = call_info(Handler, Bridge, Msg, State),
-            send(Socket, Reply),
-            ?MODULE:websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, PongTimer, NewState, PartialData)
+    receive
+	{tcp, Socket, Data} ->
+	    cancel_pong_timer(PongTimer),
+	    AttemptPacket = <<(PartialData#partial_data.data)/binary, Data/binary>>,
+	    Frames = parse_frame(AttemptPacket),
+
+	    PendingFrames = PartialData#partial_data.message_frames,
+	    case process_frames(Frames, Socket, Bridge, Handler, State, PendingFrames) of
+		{PendingFrames2, RemainderData, NewState} ->
+		    inet:setopts(Socket, [{active, once}]),
+		    ?MODULE:websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, undefined, NewState, #partial_data{data=RemainderData, message_frames=PendingFrames2});
+		closed -> closed
+	    end;
+	{tcp_closed, _Socket} ->
+	    closed;
+	simple_bridge_pong_timeout ->
+	    %% If this message is received, it means no TCP message was
+	    %% received in the expected timeframe, so we kill the
+	    %% connection. Any TCP message received would have cancelled
+	    %% the timer.
+	    send(Socket, {close, 1006}),
+	    gen_tcp:close(Socket),
+	    closed;
+	simple_bridge_send_ping ->
+	    Reply = {ping, <<"simple bridge websocket">>},
+	    schedule_keepalive_msg(KAInterval),
+	    send(Socket, Reply),
+	    {ok, NewPongTimer} = timer:send_after(KATimeout, simple_bridge_pong_timeout),
+	    ?MODULE:websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, NewPongTimer, State, PartialData);
+	Msg ->
+	    {Reply, NewState} = call_info(Handler, Bridge, Msg, State),
+	    send(Socket, Reply),
+	    ?MODULE:websocket_loop(Socket, Bridge, Handler, KAInterval, KATimeout, PongTimer, NewState, PartialData)
     end.
 
 call_info(Handler, Bridge, Msg, State) ->
     case erlang:function_exported(Handler, ws_info, 3) of
-        true ->
-            HandlerReturn = Handler:ws_info(Msg, Bridge, State),
-            {_Reply, _NewState} = extract_reply_state(State, HandlerReturn);
-        false ->
-            {noreply, State}
+	true ->
+	    HandlerReturn = Handler:ws_info(Msg, Bridge, State),
+	    {_Reply, _NewState} = extract_reply_state(State, HandlerReturn);
+	false ->
+	    {noreply, State}
     end.
 
 extract_reply_state(State, InfoMsgReturn) ->
     case InfoMsgReturn of
-        noreply -> {noreply, State};
-        {noreply, NewState} -> {noreply, NewState};
-        {reply, Reply} -> {{reply, Reply}, State};
-        {reply, Reply, NewState} -> {{reply, Reply}, NewState};
-        close -> {close, 1000};
-        {close, CloseReason} -> {close, CloseReason}
+	noreply -> {noreply, State};
+	{noreply, NewState} -> {noreply, NewState};
+	{reply, Reply} -> {{reply, Reply}, State};
+	{reply, Reply, NewState} -> {{reply, Reply}, NewState};
+	close -> {close, 1000};
+	{close, CloseReason} -> {close, CloseReason}
     end.
 
 close_with_purpose(ReasonCode, Reason) ->
@@ -231,7 +231,7 @@ send(Socket, {reply, {binary, Data}}) ->
     send_frame(Socket, #frame{opcode=?WS_BINARY, data=Data});
 send(Socket, {reply, Fragments}) when is_list(Fragments) ->
     send_fragments(Socket, Fragments).
-    
+
 %%send(Socket, {stream, {binary, Fun}}) ->
 %%    send_frame(#frame{opcode=?WS_BINARY, fin=0, data=Fu
 
@@ -252,24 +252,24 @@ send_fragments_rest(Socket, [{_,Data}]) ->
 send_fragments_rest(Socket, [{_,Data}|T]) ->
     send_frame(Socket, #frame{fin=0, opcode=?WS_CONTINUATION, data=Data}),
     send_fragments_rest(Socket, T).
-    
+
 
 send_frame(Socket, F) ->
     BinFrame = encode_frame(F),
     gen_tcp:send(Socket, BinFrame).
-    
+
 
 encode_frame(#frame{
-        fin=Fin, rsv=RSV, opcode=Opcode,
-        %% commented because server should not mask. We can always implement if
-        %% masking becomes necessary
-        %% masked=Masked, mask_key=Mask,
-        data=Data}) ->
+	fin=Fin, rsv=RSV, opcode=Opcode,
+	%% commented because server should not mask. We can always implement if
+	%% masking becomes necessary
+	%% masked=Masked, mask_key=Mask,
+	data=Data}) ->
     BinData = iolist_to_binary(Data),
     {PayloadLen, ExtLen, ExtBitSize} = case byte_size(BinData) of
-        L when L < 126   -> {L, 0, 0};
-        L when L < 65536 -> {126, L, 16};
-        L                -> {127, L, 64}
+	L when L < 126   -> {L, 0, 0};
+	L when L < 65536 -> {126, L, 16};
+	L                -> {127, L, 64}
     end,
     Masked = 0,
     <<Fin:1, RSV:3, Opcode:4, Masked:1, PayloadLen:7, ExtLen:ExtBitSize, BinData/binary>>.
@@ -291,22 +291,22 @@ process_frames([Bin], _Socket, _Bridge, _Handler, State, PendingFrames) when is_
 
 %% Handling erroneous Frams:
 %% Control frames with payload > 126
-process_frames([#frame{opcode=Ctl, payload_len=PayloadLen} | _], _Socket, _Bridge, _Handler, _State, _Pending) 
-        when (Ctl=:=?WS_PING orelse Ctl=:=?WS_PONG orelse Ctl=:=?WS_CLOSE) andalso PayloadLen >= ?WS_EXTENDED_PAYLOAD_16BIT ->
+process_frames([#frame{opcode=Ctl, payload_len=PayloadLen} | _], _Socket, _Bridge, _Handler, _State, _Pending)
+	when (Ctl=:=?WS_PING orelse Ctl=:=?WS_PONG orelse Ctl=:=?WS_CLOSE) andalso PayloadLen >= ?WS_EXTENDED_PAYLOAD_16BIT ->
     close_with_purpose(1002, {control_frame_payload_to_large, PayloadLen});
 %% RSV bits set to anything but zero
 process_frames([#frame{rsv=RSV} | _], _Socket, _Bridge, _Handler, _State, _Pending)
-        when RSV =/= 0 ->
+	when RSV =/= 0 ->
     close_with_purpose(1002, {invalid_rsv, RSV});
 %% Invalid Opcode
 process_frames([#frame{opcode=Op} | _], _Socket, _Bridge, _Handler, _State, _Pending)
-        when ?IS_INVALID_OPCODE(Op) ->
+	when ?IS_INVALID_OPCODE(Op) ->
     close_with_purpose(1002, {invalid_opcode, Op});
 
 
 %% Single Text or Binary Frame (PendingFrames must be empty)
-process_frames([_F = #frame{opcode=Opcode, fin=1, data=Data} |Rest], Socket, Bridge, Handler, State, []) 
-        when Opcode=:=?WS_BINARY; Opcode=:=?WS_TEXT ->
+process_frames([_F = #frame{opcode=Opcode, fin=1, data=Data} |Rest], Socket, Bridge, Handler, State, [])
+	when Opcode=:=?WS_BINARY; Opcode=:=?WS_TEXT ->
     Type = type(Opcode),
     %% Side-effects, look out!
     close_on_invalid_utf8_text(Type, Data),
@@ -317,7 +317,7 @@ process_frames([_F = #frame{opcode=Opcode, fin=1, data=Data} |Rest], Socket, Bri
 
 %% First Text or Binary Fragment (PendingFrames must be empty)
 process_frames([F = #frame{opcode=Opcode, fin=0}|Rest], Socket, Bridge, Handler, State, [])
-        when Opcode=:=?WS_BINARY; Opcode=:=?WS_TEXT ->
+	when Opcode=:=?WS_BINARY; Opcode=:=?WS_TEXT ->
     process_frames(Rest, Socket, Bridge, Handler, State, [F]);
 
 %% Continuation Frame
@@ -346,20 +346,20 @@ process_frames([#frame{opcode=?WS_PING, data=Data, fin=1}|Rest], Socket, Bridge,
 
 process_frames([_F = #frame{opcode=?WS_CLOSE, data=Data}|_Rest], Socket, Bridge, Handler, State, _PendingFrames) ->
     StatusCode = case Data of
-        <<_:8>> ->
-            1002;
-        <<ReasonCode:16,Text/binary>> ->
-            case is_valid_close_code(ReasonCode) of
-                true ->
-                    case is_utf8(Text) of
-                        true -> ReasonCode;
-                        false -> 1007
-                    end;
-                false -> 1002
-            end;
-        _ -> 1000
+	<<_:8>> ->
+	    1002;
+	<<ReasonCode:16,Text/binary>> ->
+	    case is_valid_close_code(ReasonCode) of
+		true ->
+		    case is_utf8(Text) of
+			true -> ReasonCode;
+			false -> 1007
+		    end;
+		false -> 1002
+	    end;
+	_ -> 1000
     end,
-            
+
     send(Socket, {close, StatusCode}),
     Handler:ws_terminate(closed, Bridge, State),
     inet:close(Socket),
@@ -368,23 +368,23 @@ process_frames([_F = #frame{opcode=?WS_CLOSE, data=Data}|_Rest], Socket, Bridge,
 %% None of the above caught it. something must be wrong, so let's just die
 process_frames([F|_], _Socket, _Bridge, _Handler, _State, _PendingFrames) ->
     close_with_purpose(1002, {unknown_error_processing_frame, F}).
-    
+
 defragment_data(Frames) ->
     iolist_to_binary([F#frame.data || F <- Frames]).
 
 is_valid_close_code(Code) ->
     (Code >= 3000 andalso Code < 5000)
-        orelse lists:member(Code, [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]).
+	orelse lists:member(Code, [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]).
 
 type(?WS_BINARY) -> binary;
 type(?WS_TEXT) -> text.
 
 -define(DO_FRAMES(Mask),
-    if 
-        byte_size(Data) >= PayloadLen ->
-            do_frames(Fin,RSV,Op,PayloadLen,Mask,Data);
-        ?else ->
-            [Raw]
+    if
+	byte_size(Data) >= PayloadLen ->
+	    do_frames(Fin,RSV,Op,PayloadLen,Mask,Data);
+	?else ->
+	    [Raw]
     end).
 
 %% @doc Takes some binary data, assumed to be the beginning of a frame, and
@@ -420,21 +420,21 @@ append_frame_data_and_parse_remainder(F = #frame{payload_len=PayloadLen, mask_ke
     FullData = <<CurrentPayload/binary,Data/binary>>,
     Length = byte_size(FullData),
     if
-        Length =:= PayloadLen ->
-            Unmasked = apply_mask(Mask, FullData),
-            [F#frame{data=Unmasked}, <<>>];
+	Length =:= PayloadLen ->
+	    Unmasked = apply_mask(Mask, FullData),
+	    [F#frame{data=Unmasked}, <<>>];
 
-        Length > PayloadLen  ->
-            %% Since the length of the received data is longer than the
-            %% required payload length, break off the part we want for our
-            %% frame
-            FrameData = binary:part(FullData, 0, PayloadLen),
-            Unmasked = apply_mask(Mask, FrameData),
+	Length > PayloadLen  ->
+	    %% Since the length of the received data is longer than the
+	    %% required payload length, break off the part we want for our
+	    %% frame
+	    FrameData = binary:part(FullData, 0, PayloadLen),
+	    Unmasked = apply_mask(Mask, FrameData),
 
-            %% Then let's break off the remainder of the binary, we're going to
-            %% try parsing this, too
-            RemainingData = binary:part(Data, PayloadLen, Length-PayloadLen),
-            [F#frame{data=Unmasked} | parse_frame(RemainingData)]
+	    %% Then let's break off the remainder of the binary, we're going to
+	    %% try parsing this, too
+	    RemainingData = binary:part(Data, PayloadLen, Length-PayloadLen),
+	    [F#frame{data=Unmasked} | parse_frame(RemainingData)]
     end.
 
 apply_mask(Mask, Data) ->
@@ -453,7 +453,7 @@ apply_mask(FullM, <<D:16>>, Acc) ->
     <<M:16,_:16>> = <<FullM:32>>,
     Masked = D bxor M,
     <<Acc/binary,Masked:16>>;
-apply_mask(FullM, <<D:24>>, Acc) -> 
+apply_mask(FullM, <<D:24>>, Acc) ->
     <<M:24,_:8>> = <<FullM:32>>,
     Masked = D bxor M,
     <<Acc/binary,Masked:24>>.
@@ -461,8 +461,8 @@ apply_mask(FullM, <<D:24>>, Acc) ->
 close_on_invalid_utf8_text(binary, _)  -> do_nothing;
 close_on_invalid_utf8_text(text, Data) ->
     case is_utf8(Data) of
-        true -> do_nothing;
-        false -> close_with_purpose(1007, {invalid_utf8, Data})
+	true -> do_nothing;
+	false -> close_with_purpose(1007, {invalid_utf8, Data})
     end.
 
 %% UTF8-Validation Below:
@@ -471,12 +471,12 @@ close_on_invalid_utf8_text(text, Data) ->
 %% https://github.com/extend/cowboy/blob/0d5a12c3ecd3bd093c33e9a8126f1d129719b9ea/src/cowboy_websocket.erl#L491
 -spec is_utf8(binary()) -> boolean().
 is_utf8(<<>>) ->
-        true;
+	true;
 is_utf8(<< _/utf8, Rest/binary >>) ->
-        is_utf8(Rest);
+	is_utf8(Rest);
 %% 2 bytes. Codepages C0 and C1 are invalid; fail early.
 is_utf8(<< 2#1100000:7, _/bits >>) ->
-        false;
+	false;
 %%is_utf8(<< 2#110:3, _:5 >>) ->
 %%        true;
 %%%% 3 bytes.
@@ -486,7 +486,7 @@ is_utf8(<< 2#1100000:7, _/bits >>) ->
 %%        true;
 %%%% 4 bytes. Codepage F4 may have invalid values greater than 0x10FFFF.
 is_utf8(<< 2#11110100:8, 2#10:2, High:6, _/bits >>) when High >= 2#10000 ->
-        false;
+	false;
 %%is_utf8(<< 2#11110:5, _:3 >>) ->
 %%        true;
 %%is_utf8(<< 2#11110:5, _:3, 2#10:2, _:6 >>) ->
@@ -495,4 +495,4 @@ is_utf8(<< 2#11110100:8, 2#10:2, High:6, _/bits >>) when High >= 2#10000 ->
 %%        true;
 %% Invalid.
 is_utf8(_) ->
-        false.
+	false.

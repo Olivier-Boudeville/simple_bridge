@@ -73,4 +73,3 @@
 # 1.3 and earlier
 
 * Supports Cowboy, Inets, Mochiweb, Webmachine, Yaws, and Misultin
-

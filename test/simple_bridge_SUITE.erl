@@ -29,7 +29,7 @@
 all() -> [{group, main}].
 
 groups() ->
-	[{main, 
+	[{main,
 		[parallel, {repeat, 1}],
 		[peer_ip, request_method_get, request_method_post, request_body, protocol, path, query_params, post_params, static, deep_static, deeper_static, cookie_list, cookie_binary]
 	}].
@@ -66,13 +66,13 @@ request_method_post(_) ->
 
 request_body(_) ->
 	"<<\"my body\">>" = post("request_body", "my body").
-	
+
 query_params(_) ->
 	"[{<<\"a\">>,<<\"1\">>},{<<\"b\">>,<<\"2\">>}]" = request("query_params?a=1&b=2").
 
 post_params(_) ->
 	"[{<<\"a\">>,<<\"1\">>},{<<\"b\">>,<<\"2\">>}]" = post("post_params", "a=1&b=2").
-	
+
 static(_) ->
 	"1234\n" = get_static("static/test_static.txt").
 
@@ -98,12 +98,12 @@ cookie_inner(Type) ->
 extract_cookie_value(Headers, FindKey) ->
     RawCookies = [V || {K,V} <- Headers, string:to_lower(K)=="set-cookie"],
     lists:foldl(fun(Cookie, CurVal) ->
-        [KV | _] = string:tokens(Cookie, ";"),
-        [Key, Val | _] = string:tokens(KV, "="),
-        case FindKey==Key of
-            true -> Val;
-            false -> CurVal
-        end
+	[KV | _] = string:tokens(Cookie, ";"),
+	[Key, Val | _] = string:tokens(KV, "="),
+	case FindKey==Key of
+	    true -> Val;
+	    false -> CurVal
+	end
     end, undefined, RawCookies).
 
 make_cookie_headers() ->

@@ -25,11 +25,11 @@ start_link() ->
 init([]) ->
     application:load(yaws),
     case application:get_env(yaws, conf) of
-        {ok, Conf} -> 
-            io:format("Starting Yaws based on the configuration file: ~s~n", [Conf]),
-            application:start(yaws);
-        undefined ->
-            start_embedded_yaws()
+	{ok, Conf} ->
+	    io:format("Starting Yaws based on the configuration file: ~s~n", [Conf]),
+	    application:start(yaws);
+	undefined ->
+	    start_embedded_yaws()
     end,
     {ok, { {one_for_one, 5, 10}, []}}.
 
@@ -46,18 +46,18 @@ start_embedded_yaws() ->
     Appmods = [{"/", Anchor, ExcludePaths}],
 
     SConf = [
-        {servername, Servername ++ ":" ++ integer_to_list(Port)},
-        {docroot, DocRoot},
-        {listen, RealAddress},
-        {port, Port},
-        {allowed_scripts, []},
-        {partial_post_size, MaxPost},
-        {index_files, ["index.html"]},
-        {appmods, Appmods}
+	{servername, Servername ++ ":" ++ integer_to_list(Port)},
+	{docroot, DocRoot},
+	{listen, RealAddress},
+	{port, Port},
+	{allowed_scripts, []},
+	{partial_post_size, MaxPost},
+	{index_files, ["index.html"]},
+	{appmods, Appmods}
     ],
 
     GConf = [{id, Servername},
-             {keepalive_timeout, Timeout}],
+	     {keepalive_timeout, Timeout}],
     io:format("Starting Yaws Server at ~p:~p~n", [Address, Port]),
     io:format("Static Paths: ~p~nDocument Root for Static: ~s~n", [StaticPaths, DocRoot]),
     yaws:start_embedded(DocRoot, SConf, GConf, Servername).

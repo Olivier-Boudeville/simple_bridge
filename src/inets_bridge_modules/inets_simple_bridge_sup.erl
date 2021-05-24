@@ -25,32 +25,32 @@ init([]) ->
     HasMimetypes = start_mimetypes(),
     application:load(inets),
     case application:get_env(inets, services) of
-        undefined -> build_config(HasMimetypes);
-        {ok, Services} ->
-            case proplists:get_value(httpd, Services) of
-                undefined ->
-                    build_config(HasMimetypes);
-                _ -> ok
-            end
+	undefined -> build_config(HasMimetypes);
+	{ok, Services} ->
+	    case proplists:get_value(httpd, Services) of
+		undefined ->
+		    build_config(HasMimetypes);
+		_ -> ok
+	    end
     end,
 
     case application:start(inets) of
-        ok -> ok;
-        {error, {already_started, inets}} ->
-            {ok, SrvConfig} = application:get_env(inets, services),
-            Httpd = proplists:get_value(httpd, SrvConfig),
-            case inets:start(httpd, Httpd) of
-                {ok, _Pid} -> ok;
-                {error, {already_started, _Pid}} -> ok
-            end
+	ok -> ok;
+	{error, {already_started, inets}} ->
+	    {ok, SrvConfig} = application:get_env(inets, services),
+	    Httpd = proplists:get_value(httpd, SrvConfig),
+	    case inets:start(httpd, Httpd) of
+		{ok, _Pid} -> ok;
+		{error, {already_started, _Pid}} -> ok
+	    end
     end,
     {ok, { {one_for_one, 5, 10}, []} }.
 
 start_mimetypes() ->
     case application:start(mimetypes) of
-        ok -> true;
-        {error, {already_started, mimetypes}} -> true;
-        {error, _} -> false
+	ok -> true;
+	{error, {already_started, mimetypes}} -> true;
+	{error, _} -> false
     end.
 
 build_config(HasMimetypes) ->
@@ -63,35 +63,35 @@ build_config(HasMimetypes) ->
     ok = filelib:ensure_dir(LogPath),
 
     Httpd = {httpd, [
-        {bind_address, simple_bridge_util:parse_ip(Address)},
-        {port, Port},
-        {server_name, "simple_bridge_inets"},
-        {server_root, "."},
-        {document_root, DocRoot},
-        {error_log, LogPath},
-        {modules, [mod_log, mod_disk_log, simple_bridge_util:get_anchor_module(inets)]},
-        {mime_types, build_mimetypes(HasMimetypes)}
+	{bind_address, simple_bridge_util:parse_ip(Address)},
+	{port, Port},
+	{server_name, "simple_bridge_inets"},
+	{server_root, "."},
+	{document_root, DocRoot},
+	{error_log, LogPath},
+	{modules, [mod_log, mod_disk_log, simple_bridge_util:get_anchor_module(inets)]},
+	{mime_types, build_mimetypes(HasMimetypes)}
     ]},
 
     case application:get_env(inets, services) of
-        undefined ->
-            application:set_env(inets, services, [Httpd]);
-        {ok, Services} ->
-            NewServices = [Httpd | Services],
-            application:set_env(inets, services, NewServices)
+	undefined ->
+	    application:set_env(inets, services, [Httpd]);
+	{ok, Services} ->
+	    NewServices = [Httpd | Services],
+	    application:set_env(inets, services, NewServices)
     end.
 
 build_mimetypes(true = _HasMimetypes) ->
-    [{binary_to_list(Ext), binary_to_list(hd(mimetypes:ext_to_mimes(Ext)))} 
-        || Ext <- mimetypes:extensions()];
+    [{binary_to_list(Ext), binary_to_list(hd(mimetypes:ext_to_mimes(Ext)))}
+	|| Ext <- mimetypes:extensions()];
 build_mimetypes(false = _HasMimetypes) ->
     Mimetypes = [
-        {"html", "text/html"},
-        {"js", "text/javascript"},
-        {"jpg", "image/jpeg"},
-        {"jpeg", "image/jpeg"},
-        {"png", "image/png"},
-        {"gif", "image/gif"}
+	{"html", "text/html"},
+	{"js", "text/javascript"},
+	{"jpg", "image/jpeg"},
+	{"jpeg", "image/jpeg"},
+	{"png", "image/png"},
+	{"gif", "image/gif"}
     ],
     io:format("mimetypes application not found.~n Specifying bare-bones mimetypes:~n~p~n", [Mimetypes]),
     Mimetypes.

@@ -49,13 +49,13 @@ get_env([], Default) ->
     Default;
 get_env([{'INIT-ARG', Key}|AppKeys], Default) ->
     case init:get_argument(Key) of
-        {ok, [[Value]]} -> Value;
-        _ -> get_env(AppKeys, Default)
+	{ok, [[Value]]} -> Value;
+	_ -> get_env(AppKeys, Default)
     end;
 get_env([{App,Key}|AppKeys], Default) ->
     case application:get_env(App,Key) of
-        {ok, V} -> V;
-        undefined -> get_env(AppKeys, Default)
+	{ok, V} -> V;
+	undefined -> get_env(AppKeys, Default)
     end;
 get_env(Key, Default) when is_atom(Key) ->
     get_env([{simple_bridge, Key}], Default).
@@ -69,37 +69,37 @@ get_maybe_set_env(Var, Value) ->
 
 get_anchor_module(BackendApp) ->
     get_env([{simple_bridge, anchor},
-             {BackendApp, anchor}],
-            list_to_atom(atom_to_list(BackendApp) ++ "_simple_bridge_anchor")).
+	     {BackendApp, anchor}],
+	    list_to_atom(atom_to_list(BackendApp) ++ "_simple_bridge_anchor")).
 
 get_server_name(BackendApp) ->
     get_env([{simple_bridge, server_name},
-             {BackendApp, server_name}],
-             "simple_bridge").
+	     {BackendApp, server_name}],
+	     "simple_bridge").
 
 get_address_and_port(BackendApp) ->
     Address = get_env([{simple_bridge,address},
-                       {simple_bridge,bind_address},
-                       {BackendApp, address},
-                       {BackendApp,bind_address}],
-                       ?DEFAULT_IP),
+		       {simple_bridge,bind_address},
+		       {BackendApp, address},
+		       {BackendApp,bind_address}],
+		       ?DEFAULT_IP),
 
     Port =    get_env([{simple_bridge,port},
-                       {simple_bridge,bind_port},
-                       {BackendApp, port},
-                       {BackendApp, bind_port}],
-                       ?DEFAULT_PORT),
+		       {simple_bridge,bind_port},
+		       {BackendApp, port},
+		       {BackendApp, bind_port}],
+		       ?DEFAULT_PORT),
     {Address, Port}.
 
 get_docroot(BackendApp) ->
     get_env([{simple_bridge,document_root},
-             {BackendApp, document_root}],
-             ?DEFAULT_DOCROOT).
+	     {BackendApp, document_root}],
+	     ?DEFAULT_DOCROOT).
 
 get_static_paths(BackendApp) ->
     get_env([{simple_bridge,static_paths},
-             {BackendApp, static_paths}],
-             ?DEFAULT_STATIC_PATHS).
+	     {BackendApp, static_paths}],
+	     ?DEFAULT_STATIC_PATHS).
 
 get_docroot_and_static_paths(BackendApp) ->
     DocRoot = get_docroot(BackendApp),
@@ -108,9 +108,9 @@ get_docroot_and_static_paths(BackendApp) ->
 
 get_env_or_init(ConfigVar, InitVar, Default) ->
     case get_env([{simple_bridge, ConfigVar},
-                  {'INIT-ARG', InitVar}]) of
-        undefined -> Default;
-        Other -> Other
+		  {'INIT-ARG', InitVar}]) of
+	undefined -> Default;
+	Other -> Other
     end.
 
 get_websocket_keepalive_interval_timeout(BackendApp) ->
@@ -120,19 +120,19 @@ get_websocket_keepalive_interval_timeout(BackendApp) ->
 
 get_websocket_keepalive_interval(BackendApp) ->
     get_env([{simple_bridge, websocket_interval},
-             {BackendApp, websocket_interval}], 10000).
+	     {BackendApp, websocket_interval}], 10000).
 
 get_websocket_keepalive_timeout(BackendApp) ->
     get_env([{simple_bridge, websocket_timeout},
-             {BackendApp, websocket_timeout}], 5000).
+	     {BackendApp, websocket_timeout}], 5000).
 
 get_scratch_dir(Default) ->
     get_env_or_init(scratch_dir, simple_bridge_scratch_dir, Default).
 
 get_max_size(ConfigVar, InitVar, Default) ->
     Size = case get_env_or_init(ConfigVar, InitVar, Default) of
-        L when is_list(L) -> list_to_integer(L);
-        I when is_integer(I); is_float(I) -> I
+	L when is_list(L) -> list_to_integer(L);
+	I when is_integer(I); is_float(I) -> I
     end,
     Size * 1024 * 1024.
 
@@ -148,15 +148,15 @@ get_max_file_in_memory_size(Default) ->
 is_static_path(Backend, URI) ->
     StaticPaths = get_static_paths(Backend),
     lists:any(fun(StaticPath) ->
-        StaticPathLength = length(StaticPath),
-        case lists:sublist(URI, StaticPathLength) of
-            StaticPath -> true;
-            _ ->
-                case lists:sublist(URI, StaticPathLength+1) of
-                    "/" ++ StaticPath -> true;
-                    _ -> false
-                end
-         end
+	StaticPathLength = length(StaticPath),
+	case lists:sublist(URI, StaticPathLength) of
+	    StaticPath -> true;
+	    _ ->
+		case lists:sublist(URI, StaticPathLength+1) of
+		    "/" ++ StaticPath -> true;
+		    _ -> false
+		end
+	 end
     end, StaticPaths).
 
 
@@ -166,13 +166,13 @@ atomize_header(Header) when is_atom(Header) ->
     atomize_header(atom_to_list(Header));
 atomize_header(Header) when is_list(Header) ->
     LowerUnderscore = fun(H) ->
-        if
-            H >= 65 andalso H =< 90 ->
-                H + 32; % Convert "A" to "a" by adding 32 to its ASCII val
-            H == 45 ->
-                95; %% convert "-" to "_"
-            true -> H
-        end
+	if
+	    H >= 65 andalso H =< 90 ->
+		H + 32; % Convert "A" to "a" by adding 32 to its ASCII val
+	    H == 45 ->
+		95; %% convert "-" to "_"
+	    true -> H
+	end
     end,
     list_to_atom(lists:map(LowerUnderscore,Header)).
 
@@ -199,30 +199,30 @@ ensure_header(HeaderList,{Header,Value}) ->
 -spec ensure_header(header_list(), header_key(), term()) -> header_list().
 ensure_header(HeaderList,Header,Value) ->
     case has_header(HeaderList,Header) of
-        true -> HeaderList;
-        false -> [{Header,Value} | HeaderList]
+	true -> HeaderList;
+	false -> [{Header,Value} | HeaderList]
     end.
 
 -spec ensure_headers(header_list(), header_list()) -> header_list().
 ensure_headers(HeaderList,HeadersToEnsure) ->
     LowerList = lower_keys(HeaderList),
     lists:foldl(fun({Header,Value},NewHeaderList) ->
-        case has_lower_header(LowerList, Header) of
-            true -> NewHeaderList;
-            false -> [{Header,Value} | NewHeaderList]
-        end
-    end,HeaderList,HeadersToEnsure). 
+	case has_lower_header(LowerList, Header) of
+	    true -> NewHeaderList;
+	    false -> [{Header,Value} | NewHeaderList]
+	end
+    end,HeaderList,HeadersToEnsure).
 
 -spec ensure_expires_header(header_list()) -> header_list().
 ensure_expires_header(HeaderList) ->
     case needs_expires_header(HeaderList) of
-        true ->
-            Expires = default_static_expires_header(),
-            [Expires | HeaderList];
-        false ->
-            HeaderList
+	true ->
+	    Expires = default_static_expires_header(),
+	    [Expires | HeaderList];
+	false ->
+	    HeaderList
     end.
-    
+
 -spec needs_expires_header(header_list()) -> boolean().
 needs_expires_header(HeaderList) ->
     not(has_any_header(HeaderList,[<<"expires">>,<<"cache-control">>])).
@@ -257,25 +257,25 @@ to_lower(Header) when is_list(Header) ->
 -spec default_static_expires_header() -> header().
 default_static_expires_header() ->
     case application:get_env(simple_bridge,default_expires) of
-        {ok, immediate} ->
-            {<<"cache-control">>,<<"no-cache">>};
+	{ok, immediate} ->
+	    {<<"cache-control">>,<<"no-cache">>};
 
-        {ok, Seconds} when is_integer(Seconds) ->
-            Expires = expires(seconds,Seconds),
-            {<<"expires">>, Expires};
+	{ok, Seconds} when is_integer(Seconds) ->
+	    Expires = expires(seconds,Seconds),
+	    {<<"expires">>, Expires};
 
-        {ok, {Unit, Value}} when Unit==years orelse 
-                                 Unit==months orelse
-                                 Unit==weeks orelse
-                                 Unit==days orelse
-                                 Unit==hours orelse
-                                 Unit==minutes orelse
-                                 Unit==seconds ->
-            Expires = expires(Unit,Value),
-            {<<"expires">>, Expires};
-        _ -> 
-            Expires = expires(years,10),
-            {<<"expires">>, Expires}
+	{ok, {Unit, Value}} when Unit==years orelse
+				 Unit==months orelse
+				 Unit==weeks orelse
+				 Unit==days orelse
+				 Unit==hours orelse
+				 Unit==minutes orelse
+				 Unit==seconds ->
+	    Expires = expires(Unit,Value),
+	    {<<"expires">>, Expires};
+	_ ->
+	    Expires = expires(years,10),
+	    {<<"expires">>, Expires}
     end.
 
 -type unit_of_time() :: years|months|weeks|days|hours|minuites|seconds.
@@ -339,8 +339,8 @@ parse_ip(Binary) when is_binary(Binary) ->
     parse_ip(binary_to_list(Binary));
 parse_ip(String) ->
     case parse_address(String) of
-        {ok, IP} -> IP;
-        {error, _} -> undefined
+	{ok, IP} -> IP;
+	{error, _} -> undefined
     end.
 
 %% This should just be inet:parse_address, but because it's so new, older
@@ -350,26 +350,26 @@ parse_address(String) ->
 
 parse_cookie_header(CookieData) ->
     F = fun(Cookie) ->
-        case string:tokens(Cookie, "=") of
-            [] -> [];
-            L -> 
-                X = string:strip(hd(L)),
-                Y = string:join(tl(L), "="),
-                {X, Y}
-        end
+	case string:tokens(Cookie, "=") of
+	    [] -> [];
+	    L ->
+		X = string:strip(hd(L)),
+		Y = string:join(tl(L), "="),
+		{X, Y}
+	end
     end,
     [F(X) || X <- string:tokens(CookieData, ";")].
 
 create_cookie_header(#cookie{name=Name, value=Value, max_age=MaxAge,
-                            secure=Secure, domain=Domain, path=Path,
-                            http_only=HttpOnly}) ->
+			    secure=Secure, domain=Domain, path=Path,
+			    http_only=HttpOnly}) ->
     HeaderVal = [
-        to_binary(Name),"=",to_binary(Value),
-        create_cookie_expires(MaxAge),
-        create_cookie_secure(Secure),
-        create_cookie_domain(Domain),
-        create_cookie_path(Path),
-        create_cookie_http_only(HttpOnly)
+	to_binary(Name),"=",to_binary(Value),
+	create_cookie_expires(MaxAge),
+	create_cookie_secure(Secure),
+	create_cookie_domain(Domain),
+	create_cookie_path(Path),
+	create_cookie_http_only(HttpOnly)
     ],
     {<<"set-cookie">>, HeaderVal}.
 

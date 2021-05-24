@@ -38,12 +38,11 @@ init([]) ->
 
     % Start Mochiweb...
     Options = [
-        {name, ServerName},
-        {ip, Address}, 
-        {port, Port},
-        {loop, fun Anchor:loop/1}
+	{name, ServerName},
+	{ip, Address},
+	{port, Port},
+	{loop, fun Anchor:loop/1}
     ],
     mochiweb_http:start(Options),
 
     {ok, { {one_for_one, 5, 10}, []} }.
-

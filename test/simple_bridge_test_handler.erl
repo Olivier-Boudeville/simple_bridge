@@ -1,10 +1,10 @@
 -module(simple_bridge_test_handler).
 -behaviour(simple_bridge_handler).
 -export([run/1,
-        ws_init/1,
-        ws_message/3,
-        ws_info/3,
-        ws_terminate/3]).
+	ws_init/1,
+	ws_message/3,
+	ws_info/3,
+	ws_terminate/3]).
 
 run(Bridge) ->
 	Path = sbw:path(Bridge),
@@ -34,7 +34,7 @@ get_uploaded_files(Bridge) ->
     Files = sbw:post_files(Bridge),
     Errors = sbw:error(Bridge),
     RawResponse = term_to_binary({lists:map(fun(File) ->
-        {sb_uploaded_file:original_name(File), File}
+	{sb_uploaded_file:original_name(File), File}
     end, Files), Errors}),
     EncodedResponse = RawResponse,
 
@@ -45,7 +45,7 @@ do_cookies(Bridge) ->
     Type = sbw:query_param(type, Bridge),
     Cookies = sbw:cookies(Bridge),
     Bridge2 = lists:foldl(fun({K,V}, Br) ->
-        set_cookie(Type, K, V, Br)
+	set_cookie(Type, K, V, Br)
     end, Bridge, Cookies),
     sbw:set_response_data("ok", Bridge2).
 

@@ -53,11 +53,11 @@ start() ->
 
 run(Bridge) ->
     HTML = [
-        "<h1>Hello, World!</h1>",
-        io_lib:format("METHOD: ~p~n<br><br>", [Bridge:request_method()]),
-        io_lib:format("COOKIES: ~p~n<br><br>", [Bridge:cookies()]),
-        io_lib:format("HEADERS: ~p~n<br><br>", [Bridge:headers()]),
-        io_lib:format("QUERY PARAMETERS: ~p~n<br><br>", [Bridge:query_params()])       
+	"<h1>Hello, World!</h1>",
+	io_lib:format("METHOD: ~p~n<br><br>", [Bridge:request_method()]),
+	io_lib:format("COOKIES: ~p~n<br><br>", [Bridge:cookies()]),
+	io_lib:format("HEADERS: ~p~n<br><br>", [Bridge:headers()]),
+	io_lib:format("QUERY PARAMETERS: ~p~n<br><br>", [Bridge:query_params()])
     ],
     Bridge2 = sbw:set_status_code(200, Bridge),
     Bridge3 = sbw:set_header("Content-Type", "text/html", Bridge2),
@@ -99,13 +99,13 @@ The following are all valid ways to start Simple Bridge:
 simple_bridge:start(Backend, HandlerMod).
 
 %% HandlerMod is determined from the handler config variable
-simple_bridge:start(Backend).  
+simple_bridge:start(Backend).
 
 %% Backend and HandlerMod are both determined by the configuration
-simple_bridge:start(). 
+simple_bridge:start().
 
 %% Same as simple_bridge:start().
-application:start(simple_bridge). 
+application:start(simple_bridge).
 ```
 
 **Note**: You will still need to ensure that the dependencies are there for the
@@ -137,11 +137,11 @@ A Handler module is expected to export the following functions:
     + Return Values:
       + `ok` - Everything went okay, proceed with the connection.
       + `{ok, State}` - Everything went okay, proceeed with connection and
-        initialize with the provided `State` (which will be passed to
-        `ws_message`, `ws_info`, and `ws_terminate` functions.
+	initialize with the provided `State` (which will be passed to
+	`ws_message`, `ws_info`, and `ws_terminate` functions.
       + `close` - Everything did not go okay, let's shut down the connection.
   + `ws_message(Message, Bridge, State)` - Called when a websocket client has
-    sent us something. 
+    sent us something.
     + `Message` can be:
       + `{Type, Data}` - `Type` will be either `binary` or `text`, depending on
       the nature of the message. `Data` will always be a binary. By the nature of the
@@ -150,19 +150,19 @@ A Handler module is expected to export the following functions:
     + Return Values:
       + `noreply` - No reply will be made.
       + `{noreply, NewState}` - No reply will be made, but change the state to
-        `NewState`
+	`NewState`
       + `{reply, {Type, Data}}` - `Type` can be `text` or `binary` and `Data`
-        can be a binary, list, or iolist.
+	can be a binary, list, or iolist.
       + `{reply, {Type, Data}, NewState}` - Same as `{reply, {Type, Data}}`,
-        except that the internal state will be changed to `NewState`
+	except that the internal state will be changed to `NewState`
       + `{reply, [{Type, Data}]}` - Reply with a list of `{Type, Data}` pairs
-        as a single message broken into several frames.
+	as a single message broken into several frames.
       + `{reply, [{Type, Data}], NewState}` - Same as `{reply, [{Type, Data}]}`
-        except change the state to `NewState`
+	except change the state to `NewState`
       + `close` - Kill the connection (will provide the Websocket Error code 1000)
       + `{close, StatusCode}` - Kill the connection with `StatusCode` (See
-        [RFC6455 Sec 7.4.1](https://tools.ietf.org/html/rfc6455#section-7.4.1)
-        for the list of valid connection codes).
+	[RFC6455 Sec 7.4.1](https://tools.ietf.org/html/rfc6455#section-7.4.1)
+	for the list of valid connection codes).
   + `ws_info(Message, Bridge, State)` - Called when the websocket *process* receives a
     message (that is, a message was sent from an Erlang process).
     + `Message` can be any term
@@ -299,7 +299,7 @@ As with the Bridge module above, all `sb_uploaded_file` objects can be reference
     element from the page.
   * **sb_uploaded_file:data(UploadedFile)** - The entire data of uploaded file. Returns `undefined`
     if file is stored as temporary file on disk.
-    
+
 #### Storing uploaded files in RAM rather than on disk
 
 By default uploaded files are always stored in temporary file
@@ -315,7 +315,7 @@ larger than `SizeInMB` are still stored in temporary files.
 The response portion of the Bridge object provides you with a standard
 interface for adding response status codes, headers, cookies, and a body.
 
-Each function below returns a new bridge object, so you will need to 
+Each function below returns a new bridge object, so you will need to
 chain together requests like this:
 
 ```erlang
@@ -325,7 +325,7 @@ run(Bridge) ->
     Bridge3 = sbw:set_response_data(HTML, Bridge2),
     sbw:build_response(Bridge3).
 ```
-    
+
 ### Response Bridge Interface
 
 As with all SimpleBridge interfaces, you can work with either the standard

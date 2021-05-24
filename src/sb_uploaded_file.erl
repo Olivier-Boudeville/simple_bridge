@@ -5,7 +5,7 @@
 %
 % uploaded_file provides an API to the uploaded_file record without having to
 % include simple_bridge.hrl file into user applications.
-% 
+%
 % This can be called either in standard Erlang:
 %    uploaded_file:original_name(File).
 %

@@ -9,41 +9,41 @@
 -include ("simple_bridge.hrl").
 
 -export ([
-        init/1,
-        protocol/1,
-        request_method/1, 
-        path/1, 
-        uri/1,
-        peer_ip/1, 
-        peer_port/1,
-        headers/1, 
-        cookies/1,
-        query_params/1, 
-        post_params/1, 
-        request_body/1,
-        socket/1,
-        recv_from_socket/3,
-        protocol_version/1,
-        native_header_type/0
+	init/1,
+	protocol/1,
+	request_method/1,
+	path/1,
+	uri/1,
+	peer_ip/1,
+	peer_port/1,
+	headers/1,
+	cookies/1,
+	query_params/1,
+	post_params/1,
+	request_body/1,
+	socket/1,
+	recv_from_socket/3,
+	protocol_version/1,
+	native_header_type/0
     ]).
 
 -export([
-        build_response/2
+	build_response/2
     ]).
 
-init(Req) -> 
+init(Req) ->
     Req.
 
 protocol(Req) ->
     wrq:scheme(Req).
 
-request_method(Req) -> 
+request_method(Req) ->
     wrq:method(Req).
 
-path(Req) -> 
+path(Req) ->
     wrq:path(Req).
 
-uri(Req) -> 
+uri(Req) ->
     wrq:raw_path(Req).
 
 peer_ip(Req) ->
@@ -82,58 +82,58 @@ socket(Req) ->
     %% 7th element of wm_reqdata record is wm_state, which contains another
     %% record, but which can be interacted with through
     %% webmachine_request:socket
-    %% 
+    %%
     %% If this suddenly starts breaking, then we need to verify the record
     %% structure of wm_reqdata.hrl
     %%
     %% https://github.com/basho/webmachine/blob/master/include/wm_reqdata.hrl
-    ReqState = element(7, Req), 
+    ReqState = element(7, Req),
     {Socket, _} = webmachine_request:socket(ReqState),
     Socket.
 
 recv_from_socket(Length, Timeout, Req) ->
     Socket = socket(Req),
     case gen_tcp:recv(Socket, Length, Timeout) of
-        {ok, Data} -> Data;
-        _ -> exit(normal)
+	{ok, Data} -> Data;
+	_ -> exit(normal)
     end.
 
 protocol_version(Req) ->
   wrq:version(Req).
 
-build_response(Req, Res) -> 
+build_response(Req, Res) ->
     Code = Res#response.status_code,
     case Res#response.data of
-        {data, Body} ->
-            %% httpd_util:flatlength expects a list and body could be a binary,
-            %% so wrap it in a list, and we have ourselves an iolist. MUCH
-            %% EXCITE!
-            Size = integer_to_list(httpd_util:flatlength([Body])),
+	{data, Body} ->
+	    %% httpd_util:flatlength expects a list and body could be a binary,
+	    %% so wrap it in a list, and we have ourselves an iolist. MUCH
+	    %% EXCITE!
+	    Size = integer_to_list(httpd_util:flatlength([Body])),
 
-            %% Assemble headers...
-            Headers = lists:flatten([
-                {content_length, Size},
-                [{X#header.name, X#header.value} || X <- Res#response.headers],
-                [create_cookie_header(X) || X <- Res#response.cookies]
-            ]),     
+	    %% Assemble headers...
+	    Headers = lists:flatten([
+		{content_length, Size},
+		[{X#header.name, X#header.value} || X <- Res#response.headers],
+		[create_cookie_header(X) || X <- Res#response.cookies]
+	    ]),
 
-            Req1 = wrq:set_response_code(Code, Req),
-            Req2 = wrq:set_resp_headers(Headers, Req1),
-            {ok, Body, Req2};
-        {file, Path} ->
-            %% We should really never get here, because Webmachine
-            %% works via a dispatch table mapping routes to
-            %% modules. For this case to happen, it means the dispatch
-            %% table mapped a route to a static file.
-            throw({unrouted_static_file, [
-                {requested_file, Path},
-                {description, "Simple Bridge for Webmachine is not set up to handle static files. Static files should be handled by Webmachine through the dispatch table."},
-                {see_also, [
-                    "https://github.com/nitrogen/simple_bridge/blob/master/src/webmachine/webmachine_simple_bridge_sup.erl",
-                    "https://github.com/nitrogen/simple_bridge/blob/master/etc/webmachine.config"
-                ]}
-            ]})
-            
+	    Req1 = wrq:set_response_code(Code, Req),
+	    Req2 = wrq:set_resp_headers(Headers, Req1),
+	    {ok, Body, Req2};
+	{file, Path} ->
+	    %% We should really never get here, because Webmachine
+	    %% works via a dispatch table mapping routes to
+	    %% modules. For this case to happen, it means the dispatch
+	    %% table mapped a route to a static file.
+	    throw({unrouted_static_file, [
+		{requested_file, Path},
+		{description, "Simple Bridge for Webmachine is not set up to handle static files. Static files should be handled by Webmachine through the dispatch table."},
+		{see_also, [
+		    "https://github.com/nitrogen/simple_bridge/blob/master/src/webmachine/webmachine_simple_bridge_sup.erl",
+		    "https://github.com/nitrogen/simple_bridge/blob/master/etc/webmachine.config"
+		]}
+	    ]})
+
     end.
 
 create_cookie_header(Cookie) ->

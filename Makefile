@@ -94,7 +94,7 @@ DEPS=erts kernel stdlib crypto sasl
 
 $(DEPS_PLT):
 	@echo Building local plt at $(DEPS_PLT)
-	@echo 
+	@echo
 	@## We don't do -r ./deps for this at least until we have a separate
 	@## dialyzer test for each backend, mostly because webmachine's mochiweb
 	@## version and mochiweb 2.9 conflict.
@@ -128,6 +128,3 @@ else
 	(make test_inets)
 endif
 	(make test_cowboy test_yaws test_mochiweb test_webmachine)
-
-
-

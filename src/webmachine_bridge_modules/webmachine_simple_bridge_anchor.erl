@@ -2,8 +2,8 @@
 -module(webmachine_simple_bridge_anchor).
 -include("simple_bridge.hrl").
 -export([
-    init/1, 
-    to_html/2, 
+    init/1,
+    to_html/2,
     allowed_methods/2,
     post_is_create/2,
     process_post/2,
@@ -16,13 +16,13 @@
 ping(Req, State) ->
     {pong, Req, State}.
 
-init(_Handler = Handler) -> 
+init(_Handler = Handler) ->
     {ok, Handler}.
 
-allowed_methods(Req, Handler) -> 
+allowed_methods(Req, Handler) ->
     {['HEAD', 'GET', 'POST'], Req, Handler}.
 
-post_is_create(Req, Handler) -> 
+post_is_create(Req, Handler) ->
     {false, Req, Handler}.
 
 to_html(Req, Handler) ->
@@ -37,11 +37,11 @@ process_post(Req, Handler) ->
 do_bridge(Handler, Req) ->
     Bridge = simple_bridge:make(webmachine, Req),
     case simple_bridge_websocket:attempt_hijacking(Bridge, Handler) of
-        {hijacked, closed} ->
-            mochiweb_socket:close(sbw:socket(Bridge)),
-            {ok, "", Req};
-        {hijacked, Bridge2} ->
-            sbw:build_response(Bridge2);
-        spared ->
-            Handler:run(Bridge)
+	{hijacked, closed} ->
+	    mochiweb_socket:close(sbw:socket(Bridge)),
+	    {ok, "", Req};
+	{hijacked, Bridge2} ->
+	    sbw:build_response(Bridge2);
+	spared ->
+	    Handler:run(Bridge)
     end.

@@ -20,7 +20,7 @@ main([SrcFile, DepsFile, DestFile]) ->
     RemovedDeps = proplists:delete(deps, Src),
     Merged = RemovedDeps ++ [{deps, NewDeps}],
     Formatted = lists:map(fun(Term) ->
-        io_lib:format("~tp.~n", [Term])
+	io_lib:format("~tp.~n", [Term])
     end, Merged),
 
     file:write_file(DestFile, Formatted),

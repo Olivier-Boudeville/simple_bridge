@@ -16,31 +16,31 @@ out(Arg) ->
     Upgrade = sbw:header_lower(upgrade, Bridge),
     {KAInterval, KATimeout} = simple_bridge_util:get_websocket_keepalive_interval_timeout(yaws),
     case Upgrade of
-        "websocket" ->
-            %% Pass the Handler module and the Bridge as the initial State but
-            %% use the current module as the actual Websocket handler
-            Opts = setup_websocket_opts(Handler, Bridge, KAInterval, KATimeout),
-            {websocket, ?MODULE, Opts};
-        _ ->
-            Handler:run(Bridge)
+	"websocket" ->
+	    %% Pass the Handler module and the Bridge as the initial State but
+	    %% use the current module as the actual Websocket handler
+	    Opts = setup_websocket_opts(Handler, Bridge, KAInterval, KATimeout),
+	    {websocket, ?MODULE, Opts};
+	_ ->
+	    Handler:run(Bridge)
     end.
 
 setup_websocket_opts(Handler, Bridge, KAInterval, KATimeout) ->
     KeepAlive = is_integer(KAInterval) andalso KAInterval > 0,
     [
-        %% Standard Yaws websocket handler.
-        {callback, {basic, #ws_state{handler=Handler, bridge=Bridge}}},
+	%% Standard Yaws websocket handler.
+	{callback, {basic, #ws_state{handler=Handler, bridge=Bridge}}},
 
-        %% Boolean turning on or off keepalive pings
-        {keepalive, KeepAlive},
+	%% Boolean turning on or off keepalive pings
+	{keepalive, KeepAlive},
 
-        %% The interval to send keepalive pings (even though it's
-        %% labeled 'keepalive_timeout').
-        {keepalive_timeout, KAInterval},
+	%% The interval to send keepalive pings (even though it's
+	%% labeled 'keepalive_timeout').
+	{keepalive_timeout, KAInterval},
 
-        %% The actual timeout. If we don't hear back about our ping in
-        %% KATimeout milliseconds, yaws will kill the connection.
-        {keepalive_grace_period, KATimeout},
+	%% The actual timeout. If we don't hear back about our ping in
+	%% KATimeout milliseconds, yaws will kill the connection.
+	{keepalive_grace_period, KATimeout},
 
 	%% If the websocket times out, should we drop the websocket connection?
 	{drop_on_timeout, true}
@@ -59,11 +59,11 @@ handle_message(Data, WSState=#ws_state{handler=Handler, bridge=Bridge, state=Sta
 
 handle_info(Data, WSState=#ws_state{handler=Handler, bridge=Bridge, state=State}) ->
     case erlang:function_exported(Handler, ws_info, 3) of
-        true -> 
-            Result = Handler:ws_info(Data, Bridge, State),
-            massage_reply(Result, WSState);
-        false ->
-            {noreply, WSState}
+	true ->
+	    Result = Handler:ws_info(Data, Bridge, State),
+	    massage_reply(Result, WSState);
+	false ->
+	    {noreply, WSState}
     end.
 
 terminate(Reason, #ws_state{handler=Handler, bridge=Bridge, state=State}) ->
@@ -76,7 +76,7 @@ massage_reply({noreply, NewState}, WSState) ->
 massage_reply({reply, Reply}, WSState) ->
     massage_reply({reply, Reply, WSState#ws_state.state}, WSState);
 massage_reply({reply, {Type, Data}, NewState}, WSState)
-        when Type==binary; Type==text ->
+	when Type==binary; Type==text ->
     {reply, {Type, iolist_to_binary(Data)}, WSState#ws_state{state=NewState}};
 massage_reply({reply, List, NewState}, WSState) ->
     FixedList = [{Type, iolist_to_binary(Data)} || {Type, Data} <- List],

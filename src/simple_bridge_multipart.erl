@@ -8,7 +8,7 @@
 -export ([parse/1]).
 
 % Alas, so many Erlang HTTP Servers, and so little parsing of Multipart forms.
-% This file contains multipart form parsing logic that is shared by all 
+% This file contains multipart form parsing logic that is shared by all
 % request bridges.
 % Large portions of this file are from mochiweb_multipart.erl
 % Copyright 2007 Mochi Media, Inc., written by Bob Ippolito <bob@mochimedia.com>.
@@ -34,40 +34,40 @@
     filename,     % The name of the posted file
     mime_type,    % The mime type of the file
     size=0,       % The size of the part's value
-    needs_rn      % True if we should add a \r\n before the next write 
+    needs_rn      % True if we should add a \r\n before the next write
 }).
 
 -define (NEWLINE, "\r\n").
 
 parse(Req) ->
     case is_multipart_request(Req) of
-        true ->  parse_multipart(Req);
-        false -> {ok, not_multipart}
+	true ->  parse_multipart(Req);
+	false -> {ok, not_multipart}
     end.
 
 is_multipart_request(Req) ->
     try sbw:header_lower(content_type, Req) of
-        "multipart/form-data" ++ _  -> true;
-        _                           -> false
+	"multipart/form-data" ++ _  -> true;
+	_                           -> false
     catch _:_                       -> false
     end.
 
 parse_multipart(Req) ->
     try
-        Boundary = get_multipart_boundary(Req),
-        Length = get_content_length(Req),
-        ok = crash_if_too_big(Length, #state{parts = [], req=Req}),
-        Data = get_opening_body(Req), 
-        State = init_state(Req, Boundary, Length, Data),
-        State1 = read_boundary(Data, State),
-        {Params, Files} = process_parts(State1#state.parts),
-        {ok, Params, Files}
+	Boundary = get_multipart_boundary(Req),
+	Length = get_content_length(Req),
+	ok = crash_if_too_big(Length, #state{parts = [], req=Req}),
+	Data = get_opening_body(Req),
+	State = init_state(Req, Boundary, Length, Data),
+	State1 = read_boundary(Data, State),
+	{Params, Files} = process_parts(State1#state.parts),
+	{ok, Params, Files}
     catch
-        throw : {Reason, ErrState} ->
-            lists:foreach(fun(Part) ->
-                file:delete(Part#sb_uploaded_file.temp_file)
-            end, convert_parts_to_files(ErrState#state.parts)),
-            {error, Reason}
+	throw : {Reason, ErrState} ->
+	    lists:foreach(fun(Part) ->
+		file:delete(Part#sb_uploaded_file.temp_file)
+	    end, convert_parts_to_files(ErrState#state.parts)),
+	    {error, Reason}
     end.
 
 get_content_length(Req) ->
@@ -85,19 +85,19 @@ get_multipart_boundary(Req) ->
 
 init_state(Req, Boundary, Length, Data) ->
     #state{
-        req = Req,
-        boundary = Boundary,
-        length=Length,
-        bytes_read = size(Data),
-        parts = []
+	req = Req,
+	boundary = Boundary,
+	length=Length,
+	bytes_read = size(Data),
+	parts = []
     }.
 
 crash_if_too_big(Length, State) ->
     case Length > get_max_post_size() of
-        true  ->
-            %flush_socket(State),
-            throw({post_too_big, State});
-        false -> ok
+	true  ->
+	    %flush_socket(State),
+	    throw({post_too_big, State});
+	false -> ok
     end.
 
 %% THis is just here for experiments. Not really used.
@@ -110,14 +110,14 @@ crash_if_too_big(Length, State) ->
 %
 %flush_worker(Req) ->
 %    case sbw:recv_from_socket(?CHUNKSIZE, 10, Req) of
-%        <<>> -> 
+%        <<>> ->
 %            error_logger:info_msg("All Data Flushed"),
 %            ok;
 %        _Data ->
 %            error_logger:info_msg("Flushed ~p bytes",[byte_size(_Data)]),
 %            flush_worker(Req)
 %    end.
-    
+
 
 
 process_parts(Parts) ->
@@ -127,26 +127,26 @@ process_parts(Parts) ->
 
 convert_parts_to_params(Parts) ->
     [
-        {simple_bridge_util:to_binary(Name),
-         simple_bridge_util:to_binary(Value)
-        } || #part { name=Name, value=Value, filename=undefined } <- Parts
+	{simple_bridge_util:to_binary(Name),
+	 simple_bridge_util:to_binary(Value)
+	} || #part { name=Name, value=Value, filename=undefined } <- Parts
     ].
 
 convert_parts_to_files(Parts) ->
     [#sb_uploaded_file {
-        original_name=Filename,
-        temp_file=sb_file_upload_handler:get_tempfile(FileUploadHandler),
-        data=sb_file_upload_handler:get_data(FileUploadHandler),
-        size=Size,
-        field_name=Name
+	original_name=Filename,
+	temp_file=sb_file_upload_handler:get_tempfile(FileUploadHandler),
+	data=sb_file_upload_handler:get_data(FileUploadHandler),
+	size=Size,
+	field_name=Name
     } || #part { filename=Filename, value={file, FileUploadHandler}, size=Size, name=Name } <- Parts].
 
 % Not yet in a part. Read the POST headers to get content boundary and length.
 read_boundary(Data, State = #state { boundary=Boundary }) ->
     {Line, Data1, undefined, State1} = get_next_line(Data, undefined, State),
     case interpret_line(Line, Boundary, State1) of
-        start_next_part -> read_part_header(Data1, #part {}, State1);
-        Other -> throw({unexpected, Other, Line})
+	start_next_part -> read_part_header(Data1, #part {}, State1);
+	Other -> throw({unexpected, Other, Line})
     end.
 
 %%% PART HEADERS %%%
@@ -155,27 +155,27 @@ read_boundary(Data, State = #state { boundary=Boundary }) ->
 read_part_header(Data, Part, State = #state { boundary=Boundary }) ->
     {Line, Data1, Part1, State1} = get_next_line(Data, Part, State),
     case interpret_line(Line, Boundary, State1) of
-        start_next_part -> throw({value_expected, Line});
-        start_value -> read_part_value(Data1, Part1, State1);
-        continue ->
-            % Parse the header, add it to Part, then loop.
-            Part2 = update_part_with_header(parse_header(Line), Part1),
-            read_part_header(Data1, Part2, State1);
-        eof -> State1
+	start_next_part -> throw({value_expected, Line});
+	start_value -> read_part_value(Data1, Part1, State1);
+	continue ->
+	    % Parse the header, add it to Part, then loop.
+	    Part2 = update_part_with_header(parse_header(Line), Part1),
+	    read_part_header(Data1, Part2, State1);
+	eof -> State1
     end.
 
 update_part_with_header({"content-disposition", "form-data", Params}, Part) ->
     Part1 = case proplists:get_value("name", Params) of
-                undefined -> Part;
-                Name -> Part#part { name=Name }
-            end,
+		undefined -> Part;
+		Name -> Part#part { name=Name }
+	    end,
     case proplists:get_value("filename", Params) of
-        undefined -> Part1;
-        Filename ->
-            Part1#part {
-                filename=Filename,
-                value = {file, sb_file_upload_handler:new_file(Filename)}
-            }
+	undefined -> Part1;
+	Filename ->
+	    Part1#part {
+		filename=Filename,
+		value = {file, sb_file_upload_handler:new_file(Filename)}
+	    }
     end;
 update_part_with_header(_, Part) -> Part.
 
@@ -188,21 +188,21 @@ read_part_value(_Data, Part, State = #state { eof=true }) ->
 read_part_value(Data, Part, State = #state { boundary=Boundary }) ->
     {Line, Data1, Part1, State1} = get_next_line(Data, Part, State),
     case interpret_line(Line, Boundary, State1) of
-        start_next_part ->
-            % Finalize the write, then start the next part.
-            State2 = update_state_with_part(Part1, State1),
-            read_part_header(Data1, #part {}, State2);
-        A when A == start_value orelse A == continue ->
-            % Write the line, then continue...  
-            Part2 =
-            try
-                update_part_with_value(Line, true, Part1)
-            catch
-                throw : Reason -> throw({Reason, State})
-            end,
-            read_part_value(Data1, Part2, State1);
-        eof ->
-            update_state_with_part(Part1, State1)
+	start_next_part ->
+	    % Finalize the write, then start the next part.
+	    State2 = update_state_with_part(Part1, State1),
+	    read_part_header(Data1, #part {}, State2);
+	A when A == start_value orelse A == continue ->
+	    % Write the line, then continue...
+	    Part2 =
+	    try
+		update_part_with_value(Line, true, Part1)
+	    catch
+		throw : Reason -> throw({Reason, State})
+	    end,
+	    read_part_value(Data1, Part2, State1);
+	eof ->
+	    update_state_with_part(Part1, State1)
     end.
 
 update_part_with_value(Data, IsLine, Part = #part { value={file, FileUploadHandler}, size=Size, needs_rn=NeedsRN }) ->
@@ -226,8 +226,8 @@ update_state_with_part(Part, State = #state { parts=Parts }) ->
 % Returns {Prefix, NewSize}.
 get_prefix_and_newsize(NeedsRN, Size, Data) ->
     case NeedsRN of
-        true -> {?NEWLINE, Size + length(?NEWLINE) + size(Data)};
-        _    -> {"", Size + size(Data)}
+	true -> {?NEWLINE, Size + length(?NEWLINE) + size(Data)};
+	_    -> {"", Size + size(Data)}
     end.
 
 
@@ -245,16 +245,16 @@ get_next_line(Data, Acc, Part, State = #state{length=Length, bytes_read=BytesRea
 get_next_line(Data, Acc, Part, State) when Data == undefined orelse Data == <<>> ->
     {Data1, State1, Acc1, Part1} =
     try
-        {TmpData1, TmpState1} = read_chunk(State),
-        % We don't want Acc to grow too big, so if we have more than ?CHUNKSIZE
-        % data already read, then flush it to the current part.
-        {TmpAcc1, TmpPart1} = case Part /= undefined andalso size(Acc) > ?CHUNKSIZE of
-                                  true -> {<<>>, update_part_with_value(Acc, false, Part)};
-                                  false -> {Acc, Part}
-                              end,
-        {TmpData1, TmpState1, TmpAcc1, TmpPart1}
+	{TmpData1, TmpState1} = read_chunk(State),
+	% We don't want Acc to grow too big, so if we have more than ?CHUNKSIZE
+	% data already read, then flush it to the current part.
+	{TmpAcc1, TmpPart1} = case Part /= undefined andalso size(Acc) > ?CHUNKSIZE of
+				  true -> {<<>>, update_part_with_value(Acc, false, Part)};
+				  false -> {Acc, Part}
+			      end,
+	{TmpData1, TmpState1, TmpAcc1, TmpPart1}
     catch
-        throw : Reason -> throw({Reason, State})
+	throw : Reason -> throw({Reason, State})
     end,
     % it into a part.
     get_next_line(Data1, Acc1, Part1, State1).
@@ -268,11 +268,11 @@ read_chunk(State = #state { req=Req, length=Length, bytes_read=BytesRead }) ->
 
 interpret_line(Line, Boundary, State) ->
     if
-        Line == <<"--", Boundary/binary, "--">>         -> eof;
-        Line == <<"--", Boundary/binary>>               -> start_next_part;
-        Line == <<>>                                    -> start_value;
-        State#state.eof                                 -> eof;
-        true                                            -> continue
+	Line == <<"--", Boundary/binary, "--">>         -> eof;
+	Line == <<"--", Boundary/binary>>               -> start_next_part;
+	Line == <<>>                                    -> start_value;
+	State#state.eof                                 -> eof;
+	true                                            -> continue
     end.
 
 
@@ -288,11 +288,11 @@ parse_header(String) ->
 parse_keyvalue(Char, S) ->
     % If Char not found, then use an empty value...
     {Key, Value} = case string:chr(S, Char) of
-                       0   -> {S, ""};
-                       Pos -> {string:substr(S, 1, Pos - 1), string:substr(S, Pos + 1)}
-                   end,
+		       0   -> {S, ""};
+		       Pos -> {string:substr(S, 1, Pos - 1), string:substr(S, Pos + 1)}
+		   end,
     {string:to_lower(string:strip(Key)),
-        unquote_header(string:strip(Value))}.
+	unquote_header(string:strip(Value))}.
 
 get_max_post_size() ->
     simple_bridge_util:get_max_post_size(?MAX_POST_SIZE).

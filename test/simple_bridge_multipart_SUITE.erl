@@ -24,8 +24,8 @@ all() -> [{group, multipart}].
 
 groups() -> [
     {multipart,
-        [sequence, {repeat, 10}],
-        [post_multipart, post_multipart_post_too_big, post_multipart_file_too_big]
+	[sequence, {repeat, 10}],
+	[post_multipart, post_multipart_post_too_big, post_multipart_file_too_big]
     }].
 
 init_per_group(_Group, Config) ->
@@ -61,16 +61,16 @@ post_multipart(_Config) ->
     none = Errors,
     2 = length(get_all_files_from_scratch_dir()),
     lists:foreach(fun({AtomFieldName, FileName, FileContent}) ->
-        FieldName = atom_to_list(AtomFieldName),
-        BinaryFileContent = list_to_binary(FileContent),
-        ByteSize = byte_size(BinaryFileContent),
-        File = proplists:get_value(FileName, UploadedFiles),
-        {ok, Binary} = file:read_file(sb_uploaded_file:temp_file(File)),
+	FieldName = atom_to_list(AtomFieldName),
+	BinaryFileContent = list_to_binary(FileContent),
+	ByteSize = byte_size(BinaryFileContent),
+	File = proplists:get_value(FileName, UploadedFiles),
+	{ok, Binary} = file:read_file(sb_uploaded_file:temp_file(File)),
 
-        ByteSize = sb_uploaded_file:size(File),
-        FieldName = sb_uploaded_file:field_name(File),
-        FileName = sb_uploaded_file:original_name(File),
-        Binary = BinaryFileContent
+	ByteSize = sb_uploaded_file:size(File),
+	FieldName = sb_uploaded_file:field_name(File),
+	FileName = sb_uploaded_file:original_name(File),
+	Binary = BinaryFileContent
     end, Files).
 
 post_multipart_post_too_big(_Config) ->
@@ -81,10 +81,10 @@ post_multipart_post_too_big(_Config) ->
     Files = [{data, "data1", Data1}, {data, "data2", Data2}],
 
     case post_multipart("uploaded_files", Files) of
-        {error, socket_closed_remotely} ->
-            ok;
-        Bin ->
-            {[], post_too_big} = binary_to_term(Bin)
+	{error, socket_closed_remotely} ->
+	    ok;
+	Bin ->
+	    {[], post_too_big} = binary_to_term(Bin)
     end,
     [] = get_all_files_from_scratch_dir().
 
@@ -109,17 +109,17 @@ get_all_files_from_scratch_dir() ->
 %% Based on http://stackoverflow.com/a/39284072
 format_multipart_formdata(Boundary, Fields, Files) ->
     FieldParts = lists:map(fun({FieldName, FieldContent}) ->
-        [lists:concat(["--", Boundary]),
-         lists:concat(["Content-Disposition: form-data; name=\"",atom_to_list(FieldName),"\""]),
-         "", FieldContent]
+	[lists:concat(["--", Boundary]),
+	 lists:concat(["Content-Disposition: form-data; name=\"",atom_to_list(FieldName),"\""]),
+	 "", FieldContent]
     end, Fields),
 
     FieldParts2 = lists:append(FieldParts),
 
     FileParts = lists:map(fun({FieldName, FileName, FileContent}) ->
-        [lists:concat(["--", Boundary]),
-         lists:concat(["Content-Disposition: form-data; name=\"",atom_to_list(FieldName),"\"; filename=\"",FileName,"\""]),
-         lists:concat(["Content-Type: ", "application/octet-stream"]), "", FileContent]
+	[lists:concat(["--", Boundary]),
+	 lists:concat(["Content-Disposition: form-data; name=\"",atom_to_list(FieldName),"\"; filename=\"",FileName,"\""]),
+	 lists:concat(["Content-Type: ", "application/octet-stream"]), "", FileContent]
     end, Files),
 
     FileParts2 = lists:append(FileParts),
@@ -135,16 +135,16 @@ post_multipart(Path, Files) ->
 
     URL = "http://127.0.0.1:8000/" ++ Path,
     case httpc:request(post,{URL, ReqHeader, ContentType, ReqBody}, [], [{body_format, binary}]) of
-        FullRes = {ok, {_, _, BodyBin}} -> 
+	FullRes = {ok, {_, _, BodyBin}} ->
 
-            %Headers = ReqHeader ++ [{"Content-Type", ContentType}],
-            %FullRes = {ok, _StatusCode, _Headers, ResBody} = ibrowse:send_req(URL, Headers, post, ReqBody),
-            %BodyBin = iolist_to_binary(ResBody),
-            
-            error_logger:info_msg("Returned Value: ~p",[FullRes]),
+	    %Headers = ReqHeader ++ [{"Content-Type", ContentType}],
+	    %FullRes = {ok, _StatusCode, _Headers, ResBody} = ibrowse:send_req(URL, Headers, post, ReqBody),
+	    %BodyBin = iolist_to_binary(ResBody),
 
-            BodyBin;
-        {error, socket_closed_remotely} ->
-            %% I don't particularly like that this is being returned by some webservers when crashing, but I can't find why it happens and why it's so intermittent.  But it only seems to do it with the post_to_big or file_to_big errors, so I think that's okay.
-            {error, socket_closed_remotely}
+	    error_logger:info_msg("Returned Value: ~p",[FullRes]),
+
+	    BodyBin;
+	{error, socket_closed_remotely} ->
+	    %% I don't particularly like that this is being returned by some webservers when crashing, but I can't find why it happens and why it's so intermittent.  But it only seems to do it with the post_to_big or file_to_big errors, so I think that's okay.
+	    {error, socket_closed_remotely}
     end.

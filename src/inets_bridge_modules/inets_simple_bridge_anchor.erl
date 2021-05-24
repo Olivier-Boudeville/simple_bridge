@@ -1,6 +1,6 @@
 -module(inets_simple_bridge_anchor).
 -export ([do/1]).
-	
+
 do(Req) ->
 	Bridge = simple_bridge:make(inets, Req),
 	ReqPath = sbw:path(Bridge),
